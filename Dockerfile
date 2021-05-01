@@ -5,6 +5,7 @@ ENV AUR_EXTRA_PACKAGES "steamcmd"
 ENV BUILD_USER         build
 ENV EXTRA_PACKAGES     "man mc"
 ENV PIKAUR_CACHEDIR    "/var/cache/pikaur"
+ENV USERNAME           "gamer"
 
 # fetch GamerOS package list
 RUN curl -L https://github.com/gamer-os/gamer-os/raw/master/manifest -o /tmp/manifest
@@ -20,8 +21,7 @@ RUN useradd ${BUILD_USER} -G wheel -m && \
     echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # create GamerOS user
-RUN source /tmp/manifest && \
-    groupadd -r autologin && \
+RUN groupadd -r autologin && \
     useradd -m ${USERNAME} -G autologin,wheel && \
     echo "${USERNAME}:${USERNAME}" | chpasswd
 
@@ -31,19 +31,19 @@ RUN pacman-key --init && \
     pacman-key --lsign-key 3056513887B78AEB && \
     pacman-key --lsign-key 8A9E14A07010F7E3
 
-# Fetch current mirror list
+# fetch current mirror list
 RUN reflector --verbose --latest 20 --country "Germany" --sort rate --save /etc/pacman.d/mirrorlist
 
-# Build pikaur
+# build pikaur
 RUN su - ${BUILD_USER} -c "git clone https://aur.archlinux.org/pikaur.git /tmp/pikaur" && \
     su - ${BUILD_USER} -c "cd /tmp/pikaur && makepkg -f" && \
     pacman --noconfirm -U /tmp/pikaur/pikaur-*.pkg.tar.zst
 
-# Add a fake systemd-run script to workaround pikaur requirement.
+# add a fake systemd-run script to workaround pikaur requirement.
 RUN echo -e '#!/bin/bash\nif [[ "$1" == "--version" ]]; then echo 'fake 244 version'; fi\nmkdir -p ${PIKAUR_CACHEDIR}\n' > /usr/bin/systemd-run && \
     chmod +x /usr/bin/systemd-run
 
-# Build pikaur packages
+# build pikaur packages
 RUN su ${BUILD_USER} -c "source /tmp/manifest && pikaur --noconfirm -Sw \${AUR_PACKAGES} --cachedir \${PIKAUR_CACHEDIR} && pikaur --noconfirm -Sw \${AUR_EXTRA_PACKAGES} --cachedir \${PIKAUR_CACHEDIR} && sudo mv /home/\${BUILD_USER}/.cache/pikaur/pkg/* \${PIKAUR_CACHEDIR}"
 
 # update package databases
@@ -56,6 +56,9 @@ RUN source /tmp/manifest && \
 
 # install AUR & extra packages
 RUN pacman --noconfirm -U ${PIKAUR_CACHEDIR}/*
+
+# run steamcmd to let it fetch the latest update
+RUN su - ${USERNAME} -c "steamcmd -h"
 
 # Add the project to the container.
 COPY . /workdir

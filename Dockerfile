@@ -3,9 +3,14 @@ LABEL maintainer="64372469+DaedalusHyperboreus@users.noreply.github.com"
 
 ENV AUR_EXTRA_PACKAGES "steamcmd"
 ENV BUILD_USER         build
-ENV EXTRA_PACKAGES     "man mc"
+ENV EXTRA_PACKAGES     "man mc xorg-xauth"
 ENV PIKAUR_CACHEDIR    "/var/cache/pikaur"
 ENV USERNAME           "gamer"
+
+WORKDIR /workdir
+
+# Add the config directory to the container.
+COPY config/* config/
 
 # fetch GamerOS package list
 RUN curl -L https://github.com/gamer-os/gamer-os/raw/master/manifest -o /tmp/manifest
@@ -57,10 +62,20 @@ RUN source /tmp/manifest && \
 # install AUR & extra packages
 RUN pacman --noconfirm -U ${PIKAUR_CACHEDIR}/*
 
+# set up SSH
+RUN ssh-keygen -A && \
+    sed -i "s/^.*PasswordAuthentication.*$/PasswordAuthentication no/" /etc/ssh/sshd_config \
+    && sed -i "s/^.*X11Forwarding.*$/X11Forwarding yes/" /etc/ssh/sshd_config \
+    && sed -i "s/^.*X11UseLocalhost.*$/X11UseLocalhost no/" /etc/ssh/sshd_config && \
+    install -D -m 600 -o root /workdir/config/authorized_keys.list /root/.ssh/authorized_keys && \
+    install -D -m 600 -o ${USERNAME} /workdir/config/authorized_keys.list /home/${USERNAME}/.ssh/authorized_keys
+
 # run steamcmd to let it fetch the latest update
 RUN su - ${USERNAME} -c "steamcmd -h"
 
-# Add the project to the container.
-COPY . /workdir
+# Add the devel directory to the container.
+COPY devel/* devel/
 
-WORKDIR /workdir
+# start SSH server
+EXPOSE 2222
+CMD ["/usr/sbin/sshd","-D","-p 2222"]

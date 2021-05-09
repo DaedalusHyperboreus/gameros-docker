@@ -71,7 +71,7 @@ RUN ssh-keygen -A && \
     install -D -m 600 -o ${USERNAME} /workdir/config/authorized_keys.list /home/${USERNAME}/.ssh/authorized_keys
 
 # run steamcmd to let it fetch the latest update
-RUN su - ${USERNAME} -c "steamcmd -h"
+RUN su - ${USERNAME} -c "steamcmd +login anonymous +quit && mkdir -p ~/.local/share && ln -s ~/.steam ~/.local/share/Steam"
 
 # Add the devel directory to the container.
 COPY devel/* devel/

@@ -2,8 +2,9 @@ FROM archlinux:base-devel
 LABEL maintainer="64372469+DaedalusHyperboreus@users.noreply.github.com"
 
 ENV AUR_EXTRA_PACKAGES "steamcmd"
-ENV BUILD_USER         build
+ENV BUILD_USER         "build"
 ENV EXTRA_PACKAGES     "man mc xorg-xauth"
+ENV GNUPGHOME          "/etc/pacman.d/gnupg"
 ENV PIKAUR_CACHEDIR    "/var/cache/pikaur"
 ENV USERNAME           "gamer"
 
